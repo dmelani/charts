@@ -44,10 +44,11 @@ type Bar struct {
 	colorVbo uint32
 }
 
-func NewBar(program uint32) *Bar {
+func NewBar(program uint32, width, pos float64) *Bar {
 	b := Bar{}
 	b.modified = true
-	b.width = 1.0
+	b.width = width
+	b.x = pos
 
 	gl.GenVertexArrays(1, &b.vao)
 	gl.BindVertexArray(b.vao)
@@ -143,7 +144,7 @@ func (bar *Bar) Render() {
 }
 
 type Chart struct {
-	bars map[string]*Bar
+	bars []*Bar
 	lastPos float64
 	program uint32
 }
@@ -151,18 +152,20 @@ type Chart struct {
 func NewChart(program uint32) *Chart {
 	c := &Chart{}
 	c.program = program
-	c.bars = make(map[string]*Bar)
+	c.bars = make([]*Bar, 0)
 
 	return c
 }
 
-func (c *Chart) AddBar(name string) {
-	b := NewBar(c.program)
-	c.bars[name] = b
-}
+func (c *Chart) AddSeries(name string, values []float64, r, g, b, a float64) {
+	for len(c.bars) < len(values) {
+		c.bars = append(c.bars, NewBar(c.program, 1.0, c.lastPos))
+		c.lastPos += 1.5
+	}
 
-func (c *Chart) AddValue(name string, value, r, g, b, a float64) {
-	c.bars[name].AddValue(value, r, g, b, a)
+	for i, v := range values {
+		c.bars[i].AddValue(v, r, g, b, a)
+	}
 }
 
 func (c *Chart) Update() {
@@ -221,9 +224,9 @@ func main() {
 
 	gl.ClearColor(0.1, 0.1, 0.1, 0.0)
 	chart := NewChart(program)
-	chart.AddBar("foobar")
-	chart.AddValue("foobar", 1.5, 0.2, 0.8, 0.2, 1.0)
-	chart.AddValue("foobar", 5, 0.8, 0.8, 0.2, 1.0)
+	chart.AddSeries("derp", []float64{1.5, 10, 32, 4}, 0.2, 0.8, 0.2, 1.0)
+	chart.AddSeries("herp", []float64{3.7, 1, 3.2, 14}, 0.2, 0.5, 0.4, 1.0)
+	chart.AddSeries("bucket", []float64{3.7, 13, 13.2, 9}, 0.4, 0.3, 0.4, 1.0)
 
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
